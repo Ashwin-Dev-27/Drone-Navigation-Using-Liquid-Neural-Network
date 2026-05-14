@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adaptive Drone Navigation — LNN vs PID</title>
+  <meta name="description" content="Real-time drone simulation comparing Liquid Neural Network vs PID controller under unpredictable wind and obstacle conditions." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="header">
+  <div class="header-brand">
+    <div class="drone-icon">🚁</div>
+    <div>
+      <h1 class="header-title">Adaptive Drone Navigation</h1>
+      <p class="header-subtitle">Liquid Neural Network vs PID — Real-time Comparison</p>
+    </div>
+  </div>
+  <div class="header-controls">
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot"></span>
+      <span id="statusText">Connecting…</span>
+    </div>
+    <div class="time-display" id="timeDisplay">T+0.00s</div>
+  </div>
+</header>
+
+<!-- ═══════════════════ TOP TOOLBAR ═══════════════════ -->
+<div class="toolbar">
+  <div class="toolbar-group">
+    <span class="toolbar-label">Difficulty</span>
+    <div class="btn-group" id="difficultyGroup">
+      <button class="btn-diff" data-level="calm" id="btnCalm">Calm</button>
+      <button class="btn-diff active" data-level="normal" id="btnNormal">Normal</button>
+      <button class="btn-diff" data-level="stormy" id="btnStormy">Stormy</button>
+      <button class="btn-diff danger" data-level="extreme" id="btnExtreme">Extreme</button>
+    </div>
+  </div>
+  <div class="toolbar-group">
+    <button class="btn-action" id="btnPause">⏸ Pause</button>
+    <button class="btn-action primary" id="btnReset">↺ Reset</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN GRID ═══════════════════ -->
+<main class="main-grid">
+
+  <!-- ─── LEFT: LNN Panel ─── -->
+  <section class="panel panel-lnn">
+    <div class="panel-header">
+      <div class="panel-badge lnn-badge">LNN</div>
+      <h2 class="panel-title">Liquid Neural Network</h2>
+      <div class="panel-params" id="lnnParams">— params</div>
+    </div>
+
+    <!-- 2D Top-Down Canvas -->
+    <div class="canvas-wrapper">
+      <canvas id="lnnCanvas" width="380" height="280"></canvas>
+      <div class="canvas-legend">
+        <span class="leg-item"><span class="leg-dot lnn-color"></span>LNN Path</span>
+        <span class="leg-item"><span class="leg-dot waypoint-color"></span>Waypoints</span>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Position Error</div>
+        <div class="stat-value" id="lnnError">—</div>
+        <div class="stat-unit">meters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Error</div>
+        <div class="stat-value" id="lnnAvgError">—</div>
+        <div class="stat-unit">meters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Altitude</div>
+        <div class="stat-value" id="lnnAlt">—</div>
+        <div class="stat-unit">meters</div>
+      </div>
+      <div class="stat-card danger-stat">
+        <div class="stat-label">Collisions</div>
+        <div class="stat-value" id="lnnCollisions">0</div>
+        <div class="stat-unit">events</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-row">
+      <span class="progress-label">Mission</span>
+      <div class="progress-bar">
+        <div class="progress-fill lnn-fill" id="lnnProgress"></div>
+      </div>
+      <span class="progress-pct" id="lnnProgressPct">0%</span>
+    </div>
+    <div id="lnnStatusMsg" style="text-align: center; font-size: 0.95rem; font-weight: 600; color: #818cf8; margin-bottom: 12px; margin-top: -8px;">Navigating...</div>
+
+    <!-- Attitude Indicator -->
+    <div class="attitude-row">
+      <div class="attitude-item">
+        <span class="att-label">Roll</span>
+        <div class="att-bar-wrap">
+          <div class="att-bar" id="lnnRollBar"></div>
+          <div class="att-center"></div>
+        </div>
+        <span class="att-val" id="lnnRoll">0°</span>
+      </div>
+      <div class="attitude-item">
+        <span class="att-label">Pitch</span>
+        <div class="att-bar-wrap">
+          <div class="att-bar" id="lnnPitchBar"></div>
+          <div class="att-center"></div>
+        </div>
+        <span class="att-val" id="lnnPitch">0°</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CENTER: Shared Charts & Environment ─── -->
+  <section class="panel panel-center">
+    
+    <!-- Wind Meter -->
+    <div class="wind-panel">
+      <div class="wind-header">
+        <span class="wind-icon">🌪️</span>
+        <span class="wind-title">Wind Conditions</span>
+        <span class="wind-mag" id="windMag">0.0 m/s</span>
+      </div>
+      <div class="wind-compass">
+        <canvas id="windCanvas" width="120" height="120"></canvas>
+      </div>
+      <div class="wind-stats">
+        <div class="wind-stat"><span>Gusts</span><span id="gustCount">0</span></div>
+        <div class="wind-stat"><span>Turbulence</span><span id="turbLevel">—</span></div>
+        <div class="wind-stat"><span>Obstacles</span><span id="obstCount">0</span></div>
+      </div>
+    </div>
+
+    <!-- Error Comparison Chart -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <span class="chart-title">Position Error Over Time</span>
+        <div class="chart-legend">
+          <span class="cl-item lnn-cl">LNN</span>
+          <span class="cl-item pid-cl">PID</span>
+        </div>
+      </div>
+      <canvas id="errorChart" width="340" height="160"></canvas>
+    </div>
+
+    <!-- Wind History -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <span class="chart-title">Wind Intensity</span>
+      </div>
+      <canvas id="windChart" width="340" height="100"></canvas>
+    </div>
+
+    <!-- Comparison Score -->
+    <div class="score-panel">
+      <div class="score-title">🏆 Performance Advantage</div>
+      <div class="score-row">
+        <span class="score-label">Error Reduction</span>
+        <div class="score-bar-wrap">
+          <div class="score-bar" id="scoreBar"></div>
+        </div>
+        <span class="score-pct" id="scorePct">—</span>
+      </div>
+      <div class="score-verdict" id="scoreVerdict">LNN adapts better to wind disturbances</div>
+    </div>
+
+  </section>
+
+  <!-- ─── RIGHT: PID Panel ─── -->
+  <section class="panel panel-pid">
+    <div class="panel-header">
+      <div class="panel-badge pid-badge">PID</div>
+      <h2 class="panel-title">Classic PID Controller</h2>
+      <div class="panel-params" id="pidParams">3 params</div>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="pidCanvas" width="380" height="280"></canvas>
+      <div class="canvas-legend">
+        <span class="leg-item"><span class="leg-dot pid-color"></span>PID Path</span>
+        <span class="leg-item"><span class="leg-dot waypoint-color"></span>Waypoints</span>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Position Error</div>
+        <div class="stat-value" id="pidError">—</div>
+        <div class="stat-unit">meters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Error</div>
+        <div class="stat-value" id="pidAvgError">—</div>
+        <div class="stat-unit">meters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Altitude</div>
+        <div class="stat-value" id="pidAlt">—</div>
+        <div class="stat-unit">meters</div>
+      </div>
+      <div class="stat-card danger-stat">
+        <div class="stat-label">Collisions</div>
+        <div class="stat-value" id="pidCollisions">0</div>
+        <div class="stat-unit">events</div>
+      </div>
+    </div>
+
+    <div class="progress-row">
+      <span class="progress-label">Mission</span>
+      <div class="progress-bar">
+        <div class="progress-fill pid-fill" id="pidProgress"></div>
+      </div>
+      <span class="progress-pct" id="pidProgressPct">0%</span>
+    </div>
+    <div id="pidStatusMsg" style="text-align: center; font-size: 0.95rem; font-weight: 600; color: #f87171; margin-bottom: 12px; margin-top: -8px;">Navigating...</div>
+
+    <div class="attitude-row">
+      <div class="attitude-item">
+        <span class="att-label">Roll</span>
+        <div class="att-bar-wrap">
+          <div class="att-bar pid-att" id="pidRollBar"></div>
+          <div class="att-center"></div>
+        </div>
+        <span class="att-val" id="pidRoll">0°</span>
+      </div>
+      <div class="attitude-item">
+        <span class="att-label">Pitch</span>
+        <div class="att-bar-wrap">
+          <div class="att-bar pid-att" id="pidPitchBar"></div>
+          <div class="att-center"></div>
+        </div>
+        <span class="att-val" id="pidPitch">0°</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════ BOTTOM INFO ═══════════════════ -->
+<div class="info-bar">
+  <div class="info-item">
+    <span class="info-label">🧠 LNN</span>
+    <span class="info-val">CfC neurons — adapts to continuous-time dynamics</span>
+  </div>
+  <div class="info-sep">|</div>
+  <div class="info-item">
+    <span class="info-label">⚙️ PID</span>
+    <span class="info-val">Fixed gains — no wind awareness</span>
+  </div>
+  <div class="info-sep">|</div>
+  <div class="info-item">
+    <span class="info-label">🎯 Mission</span>
+    <span class="info-val">6 waypoints · Same wind · Fair comparison</span>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
