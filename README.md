@@ -1,3 +1,17 @@
+<div align="center">
+
+# ✨ Drone Navigation Using Liquid Neural Network ✨
+
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)]()
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)]()
+[![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)]()
+
+
+</div>
+
+---
+
 🚁 Overview
 
 This project focuses on building an intelligent UAV (Unmanned Aerial Vehicle) Navigation System using Liquid Neural Networks (LNNs).
